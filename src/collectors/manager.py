@@ -160,14 +160,14 @@ async def run_collection(config_path: str = "config/config.json", limit: int = 1
         config_path: Path to configuration file
         limit: Maximum threats per source
     """
-    from src.storage.database import get_db_session
+    from src.storage.database import get_db
     
     # Load configuration
     with open(config_path, 'r') as f:
         config = json.load(f)
     
     # Get database session
-    db_session = next(get_db_session())
+    db_session = next(get_db())
     
     try:
         # Initialize manager and run collection

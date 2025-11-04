@@ -28,8 +28,9 @@ class ThreatCategory(enum.Enum):
     SPAM = "spam"
     SCANNING = "scanning"
     BRUTE_FORCE = "brute_force"
-    DDoS = "ddos"
+    DDOS = "ddos"
     SUSPICIOUS = "suspicious"
+    MALICIOUS_IP = "malicious_ip"
     UNKNOWN = "unknown"
 
 
@@ -47,6 +48,13 @@ class IndicatorType(enum.Enum):
     IP = "ip"
     DOMAIN = "domain"
     URL = "url"
+
+
+class ConfidenceLevel(enum.Enum):
+    """Confidence level for threat intelligence"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 
 class FeedSource(enum.Enum):
@@ -78,11 +86,15 @@ class ThreatIndicator(Base):
     # Risk Assessment
     threat_score = Column(Float, default=0.0, nullable=False, index=True)  # 0-100
     risk_level = Column(SQLEnum(RiskLevel), default=RiskLevel.SAFE, nullable=False, index=True)
+    confidence_level = Column(SQLEnum(ConfidenceLevel), default=ConfidenceLevel.MEDIUM, nullable=False)
     is_malicious = Column(Boolean, default=False, nullable=False, index=True)
     
     # Categorization
     primary_category = Column(SQLEnum(ThreatCategory), default=ThreatCategory.UNKNOWN, nullable=False)
     categories = Column(JSON, default=list)  # List of all applicable categories
+    tags = Column(JSON, default=list)  # Tags for classification and searching
+    notes = Column(Text, nullable=True)  # Additional notes
+    external_references = Column(JSON, default=list)  # External reference URLs
     
     # Status & Tracking
     first_seen = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
