@@ -91,9 +91,10 @@ async def health_check():
 
 
 # Import and include routers
-from src.api.routes import indicators, dashboard
+from src.api.routes import indicators, dashboard, collectors
 app.include_router(indicators.router, prefix="/api/indicators", tags=["Indicators"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
+app.include_router(collectors.router, prefix="/api/collectors", tags=["Collectors"])
 
 # More routers to be added:
 # from src.api.routes import alerts, reports, scan
