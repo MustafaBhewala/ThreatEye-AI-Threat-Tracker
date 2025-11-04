@@ -134,6 +134,46 @@ async def check_virustotal(indicator: str, api_key: str, indicator_type: Indicat
     return {}
 
 
+async def check_otx(indicator: str, api_key: str, indicator_type: IndicatorType) -> Dict[str, Any]:
+    """Check indicator against AlienVault OTX"""
+    if not api_key:
+        return {}
+    
+    headers = {"X-OTX-API-KEY": api_key}
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            if indicator_type == IndicatorType.IP:
+                url = f"https://otx.alienvault.com/api/v1/indicators/IPv4/{indicator}/general"
+            elif indicator_type == IndicatorType.DOMAIN:
+                url = f"https://otx.alienvault.com/api/v1/indicators/domain/{indicator}/general"
+            else:
+                return {}
+            
+            async with session.get(url, headers=headers, timeout=10) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    pulse_count = data.get('pulse_info', {}).get('count', 0)
+                    reputation = data.get('reputation', 0)
+                    
+                    # Calculate threat score from pulses (each pulse = 10%, max 100%)
+                    threat_score = min(pulse_count * 10, 100)
+                    is_malicious = pulse_count > 0 or reputation < 0
+                    
+                    return {
+                        'source': 'AlienVault OTX',
+                        'is_malicious': is_malicious,
+                        'threat_score': threat_score,
+                        'pulse_count': pulse_count,
+                        'reputation': reputation
+                    }
+    except Exception as e:
+        print(f"OTX check failed: {e}")
+    
+    return {}
+
+
 @router.post("/live")
 async def scan_live(
     indicator_value: str,
@@ -146,22 +186,17 @@ async def scan_live(
     indicator_value = indicator_value.strip()
     indicator_type = determine_indicator_type(indicator_value)
     
-    # First check local database
+    # Check if exists in database (for reference, but still scan externally)
     existing = db.query(ThreatIndicator).filter(
         ThreatIndicator.indicator_value == indicator_value,
         ThreatIndicator.is_active == True
     ).first()
     
+    found_in_db = existing is not None
     if existing:
         # Update last_analyzed
         existing.last_analyzed = datetime.utcnow()
         db.commit()
-        
-        return {
-            'found_in_database': True,
-            'indicator': existing,
-            'external_sources': []
-        }
     
     # Load API keys from config
     import json
@@ -201,6 +236,18 @@ async def scan_live(
         if vt_result.get('is_malicious'):
             is_malicious = True
     
+    # Check AlienVault OTX
+    otx_result = await check_otx(
+        indicator_value,
+        api_keys.get('otx'),
+        indicator_type
+    )
+    if otx_result:
+        external_results.append(otx_result)
+        threat_scores.append(otx_result.get('threat_score', 0))
+        if otx_result.get('is_malicious'):
+            is_malicious = True
+    
     # 🤖 AI-POWERED THREAT ANALYSIS
     ai_analysis = ai_scorer.calculate_threat_score(
         indicator_value,
@@ -215,23 +262,23 @@ async def scan_live(
     
     # Create temporary result object with AI-enhanced data
     result = {
-        'found_in_database': False,
+        'found_in_database': found_in_db,
         'indicator': {
-            'id': None,
+            'id': existing.id if existing else None,
             'indicator_type': indicator_type.value,
             'indicator_value': indicator_value,
             'threat_score': avg_threat_score,
             'risk_level': ai_analysis['risk_level'],
             'is_malicious': is_malicious,
-            'primary_category': ThreatCategory.UNKNOWN.value,
+            'primary_category': existing.primary_category.value if existing else ThreatCategory.UNKNOWN.value,
             'confidence_level': confidence_level_value,
             'categories': [],
             'feed_hits': len(external_results),
             'confidence_score': ai_analysis['confidence'],
-            'first_seen': datetime.utcnow(),
-            'last_seen': datetime.utcnow(),
+            'first_seen': existing.first_seen if existing else datetime.utcnow(),
+            'last_seen': existing.last_seen if existing else datetime.utcnow(),
             'last_analyzed': datetime.utcnow(),
-            'created_at': datetime.utcnow(),
+            'created_at': existing.created_at if existing else datetime.utcnow(),
             'updated_at': datetime.utcnow()
         },
         'external_sources': external_results,
@@ -239,7 +286,25 @@ async def scan_live(
         'ai_analysis': {
             'risk_factors': ai_analysis.get('risk_factors', []),
             'insights': ai_analysis.get('ai_insights', []),
-            'confidence': round(ai_analysis['confidence'], 2)
+            'confidence': round(ai_analysis['confidence'], 2),
+            'calculation_breakdown': {
+                'methodology': 'Multi-Factor Weighted AI Analysis',
+                'components': [
+                    {'factor': 'Abuse Score', 'weight': '35%', 'description': 'Reputation from abuse reports and blacklists'},
+                    {'factor': 'Detection Ratio', 'weight': '30%', 'description': 'Multi-engine consensus from security vendors'},
+                    {'factor': 'Reputation Score', 'weight': '15%', 'description': 'Historical behavior and negative indicators'},
+                    {'factor': 'Behavioral Analysis', 'weight': '12%', 'description': 'AI heuristics: IP patterns, domain entropy, suspicious TLDs'},
+                    {'factor': 'Metadata Analysis', 'weight': '8%', 'description': 'Shannon entropy, consonant ratio, structure anomalies'}
+                ],
+                'confidence_formula': 'Base (40%) + Sources (15% each, max 30%) + Consensus Bonus (20%) + AI Enhancement (20%)',
+                'risk_levels': {
+                    'critical': '≥90 - Immediate threat, confirmed malicious',
+                    'high': '70-89 - High confidence threat, action recommended',
+                    'medium': '40-69 - Moderate risk, investigation needed',
+                    'low': '20-39 - Low risk, minor concerns',
+                    'safe': '<20 - Minimal to no threat detected'
+                }
+            }
         }
     }
     
@@ -256,8 +321,8 @@ async def scan_live(
         if enrichment:
             result['enrichment'] = enrichment
     
-    # Optionally save to database if malicious
-    if is_malicious and avg_threat_score >= 50:
+    # Optionally save to database if malicious and not already saved
+    if is_malicious and avg_threat_score >= 50 and not found_in_db:
         try:
             new_indicator = ThreatIndicator(
                 indicator_type=indicator_type,
@@ -278,5 +343,7 @@ async def scan_live(
         except Exception as e:
             print(f"Failed to save indicator: {e}")
             result['saved_to_database'] = False
+    elif found_in_db:
+        result['saved_to_database'] = False  # Already in database
     
     return result

@@ -6,17 +6,6 @@ import { Search, AlertTriangle, Shield, Globe, MapPin, Server, Calendar, Activit
 const Scan = () => {
   const [searchValue, setSearchValue] = useState('');
   const [result, setResult] = useState(null);
-  const [scanMode, setScanMode] = useState('database'); // 'database' or 'live'
-
-  const searchMutation = useMutation({
-    mutationFn: (value) => indicatorsApi.search(value),
-    onSuccess: (data) => {
-      setResult(data);
-    },
-    onError: (error) => {
-      setResult({ error: true, message: error.message || 'Threat indicator not found in database' });
-    },
-  });
 
   const liveScanMutation = useMutation({
     mutationFn: (value) => scanApi.liveScan(value),
@@ -26,6 +15,7 @@ const Scan = () => {
         ...data.indicator,
         enrichment: data.enrichment,
         external_sources: data.external_sources,
+        ai_analysis: data.ai_analysis,
         found_in_database: data.found_in_database,
         saved_to_database: data.saved_to_database
       });
@@ -38,15 +28,11 @@ const Scan = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchValue.trim()) {
-      if (scanMode === 'live') {
-        liveScanMutation.mutate(searchValue.trim());
-      } else {
-        searchMutation.mutate(searchValue.trim());
-      }
+      liveScanMutation.mutate(searchValue.trim());
     }
   };
 
-  const isLoading = searchMutation.isPending || liveScanMutation.isPending;
+  const isLoading = liveScanMutation.isPending;
 
   const getRiskBadge = (riskLevel) => {
     const badges = {
@@ -78,38 +64,12 @@ const Scan = () => {
 
       {/* Search Form */}
       <div className="bg-dark-card rounded-lg border border-gray-700 p-8">
-        {/* Scan Mode Toggle */}
-        <div className="mb-6 flex items-center justify-center space-x-4">
-          <button
-            onClick={() => setScanMode('database')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-              scanMode === 'database'
-                ? 'bg-primary-600 text-white'
-                : 'bg-dark-bg text-gray-400 hover:text-white'
-            }`}
-          >
-            <Search className="w-4 h-4" />
-            <span>Database Search</span>
-          </button>
-          <button
-            onClick={() => setScanMode('live')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
-              scanMode === 'live'
-                ? 'bg-green-600 text-white'
-                : 'bg-dark-bg text-gray-400 hover:text-white'
-            }`}
-          >
-            <Zap className="w-4 h-4" />
-            <span>Live Scan (External APIs)</span>
-          </button>
-        </div>
-
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Enter IP address, domain, or URL..."
+              placeholder="Enter IP address, domain, or URL for AI-powered analysis..."
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               className="w-full pl-12 pr-4 py-4 bg-dark-bg border border-gray-700 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600 text-lg"
@@ -118,16 +78,27 @@ const Scan = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-4 rounded-lg font-medium text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              scanMode === 'live'
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'bg-primary-600 hover:bg-primary-700 text-white'
-            }`}
+            className="w-full py-4 rounded-lg font-medium text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-linear-to-r from-green-600 to-primary-600 text-white hover:from-green-700 hover:to-primary-700"
           >
-            {isLoading ? 'Scanning...' : scanMode === 'live' ? 'Live Scan with External APIs' : 'Search Database'}
+            {isLoading ? (
+              <span className="flex items-center justify-center space-x-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Analyzing with AI...</span>
+              </span>
+            ) : (
+              <span className="flex items-center justify-center space-x-2">
+                <Brain className="w-5 h-5" />
+                <span>Scan with AI-Powered Analysis</span>
+              </span>
+            )}
           </button>
         </form>
-
+        
+        <div className="mt-4 flex items-center justify-center space-x-2 text-sm text-gray-400">
+          <Shield className="w-4 h-4 text-green-500" />
+          <span>Checks database + 3 live threat intelligence sources with AI analysis</span>
+        </div>
+        
         <div className="mt-6 flex items-center space-x-4 text-sm text-gray-400">
           <div className="flex items-center space-x-2">
             <Shield className="w-4 h-4" />
@@ -416,6 +387,66 @@ const Scan = () => {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* AI Calculation Methodology */}
+                  {result.ai_analysis.calculation_breakdown && (
+                    <div className="bg-dark-bg rounded-lg p-4 border border-gray-700">
+                      <h4 className="text-purple-400 font-medium mb-3 flex items-center space-x-2">
+                        <Brain className="w-4 h-4" />
+                        <span>How AI Calculates Risk</span>
+                      </h4>
+                      
+                      {/* Methodology */}
+                      <div className="mb-4">
+                        <div className="text-sm font-medium text-gray-300 mb-2">
+                          {result.ai_analysis.calculation_breakdown.methodology}
+                        </div>
+                      </div>
+                      
+                      {/* Components */}
+                      <div className="space-y-2 mb-4">
+                        <div className="text-xs font-medium text-gray-400 uppercase tracking-wider">Weighted Factors:</div>
+                        {result.ai_analysis.calculation_breakdown.components.map((comp, idx) => (
+                          <div key={idx} className="flex items-start space-x-2 text-sm">
+                            <span className="text-primary-400 font-mono">{comp.weight}</span>
+                            <div>
+                              <span className="text-white font-medium">{comp.factor}:</span>
+                              <span className="text-gray-400 ml-1">{comp.description}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Confidence Formula */}
+                      <div className="mb-4 p-3 bg-dark-bg/50 rounded border border-gray-800">
+                        <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Confidence Formula:</div>
+                        <div className="text-sm text-gray-300 font-mono">
+                          {result.ai_analysis.calculation_breakdown.confidence_formula}
+                        </div>
+                      </div>
+                      
+                      {/* Risk Levels */}
+                      <div>
+                        <div className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Risk Level Thresholds:</div>
+                        <div className="space-y-1">
+                          {Object.entries(result.ai_analysis.calculation_breakdown.risk_levels).map(([level, desc]) => (
+                            <div key={level} className="flex items-start space-x-2 text-xs">
+                              <span className={`px-2 py-0.5 rounded uppercase font-medium ${
+                                level === 'critical' ? 'bg-red-900/50 text-red-300' :
+                                level === 'high' ? 'bg-orange-900/50 text-orange-300' :
+                                level === 'medium' ? 'bg-yellow-900/50 text-yellow-300' :
+                                level === 'low' ? 'bg-blue-900/50 text-blue-300' :
+                                'bg-green-900/50 text-green-300'
+                              }`}>
+                                {level}
+                              </span>
+                              <span className="text-gray-400">{desc}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
