@@ -20,6 +20,7 @@ from src.storage.models import (
 )
 from src.api.schemas import ThreatIndicatorDetailResponse
 from src.ml_engine.threat_scorer import ai_scorer
+from src.ml_engine.gemini_analyzer import get_gemini_analyzer
 
 router = APIRouter()
 
@@ -260,6 +261,17 @@ async def scan_live(
     is_malicious = ai_analysis['is_malicious']
     confidence_level_value = ai_analysis['confidence_level']
     
+    # 🤖 GOOGLE GEMINI AI ANALYSIS (Real AI!)
+    gemini_api_key = api_keys.get('gemini')
+    gemini = get_gemini_analyzer(gemini_api_key)
+    gemini_result = gemini.analyze_threat(
+        indicator_value,
+        indicator_type.value,
+        avg_threat_score,
+        external_results,
+        ai_analysis.get('risk_factors', [])
+    )
+    
     # Create temporary result object with AI-enhanced data
     result = {
         'found_in_database': found_in_db,
@@ -305,7 +317,8 @@ async def scan_live(
                     'safe': '<20 - Minimal to no threat detected'
                 }
             }
-        }
+        },
+        'gemini_ai': gemini_result
     }
     
     # Extract enrichment data from external sources

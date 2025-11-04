@@ -16,6 +16,7 @@ const Scan = () => {
         enrichment: data.enrichment,
         external_sources: data.external_sources,
         ai_analysis: data.ai_analysis,
+        gemini_ai: data.gemini_ai,
         found_in_database: data.found_in_database,
         saved_to_database: data.saved_to_database
       });
@@ -447,6 +448,82 @@ const Scan = () => {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Google Gemini AI Analysis */}
+              {result.gemini_ai && result.gemini_ai.enabled && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-bold text-white flex items-center space-x-2">
+                    <Brain className="w-5 h-5 text-blue-500 animate-pulse" />
+                    <span>Google Gemini AI Analysis</span>
+                    <span className="text-xs px-2 py-1 bg-blue-900/50 text-blue-300 rounded-full">
+                      Real AI
+                    </span>
+                  </h3>
+                  
+                  {/* AI Expert Analysis */}
+                  {result.gemini_ai.analysis && (
+                    <div className="bg-linear-to-br from-blue-950/30 to-cyan-950/30 rounded-lg p-4 border border-blue-900/50">
+                      <h4 className="text-blue-300 font-medium mb-2 flex items-center space-x-2">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                        <span>Expert Analysis</span>
+                      </h4>
+                      <p className="text-gray-200 text-sm leading-relaxed">{result.gemini_ai.analysis}</p>
+                      {result.gemini_ai.threat_classification && (
+                        <div className="mt-3 flex items-center space-x-2">
+                          <span className="text-gray-400 text-xs">Classification:</span>
+                          <span className="px-2 py-1 bg-blue-900/50 text-blue-300 rounded text-xs font-medium">
+                            {result.gemini_ai.threat_classification}
+                          </span>
+                          {result.gemini_ai.confidence_assessment && (
+                            <>
+                              <span className="text-gray-600">•</span>
+                              <span className="text-gray-400 text-xs">{result.gemini_ai.confidence_assessment}</span>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Gemini Insights */}
+                  {result.gemini_ai.insights && result.gemini_ai.insights.length > 0 && (
+                    <div className="bg-dark-bg rounded-lg p-4 border border-gray-700">
+                      <h4 className="text-cyan-400 font-medium mb-3 flex items-center space-x-2">
+                        <Lightbulb className="w-4 h-4" />
+                        <span>AI-Generated Insights</span>
+                      </h4>
+                      <div className="space-y-2">
+                        {result.gemini_ai.insights.map((insight, idx) => (
+                          <div key={idx} className="flex items-start space-x-2 text-gray-200">
+                            <span className="text-cyan-500 mt-0.5">▸</span>
+                            <span className="text-sm">{insight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Recommendations */}
+                  {result.gemini_ai.recommendations && result.gemini_ai.recommendations.length > 0 && (
+                    <div className="bg-green-950/20 border border-green-900/50 rounded-lg p-4">
+                      <h4 className="text-green-400 font-medium mb-3 flex items-center space-x-2">
+                        <Shield className="w-4 h-4" />
+                        <span>Security Recommendations</span>
+                      </h4>
+                      <div className="space-y-2">
+                        {result.gemini_ai.recommendations.map((rec, idx) => (
+                          <div key={idx} className="flex items-start space-x-2 text-gray-200">
+                            <span className="text-green-500 mt-0.5">✓</span>
+                            <span className="text-sm">{rec}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
