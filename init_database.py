@@ -9,10 +9,10 @@ from datetime import datetime, timedelta
 import random
 
 # Add src to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
 
-from storage.database import db_manager, init_database, reset_database
-from storage.models import (
+from src.storage.database import db_manager, init_database, reset_database
+from src.storage.models import (
     ThreatIndicator, FeedData, EnrichmentData, MLPrediction,
     Alert, UserActivity, ScanJob, Report, SystemConfig,
     ThreatCategory, RiskLevel, IndicatorType, FeedSource

@@ -1,12 +1,43 @@
 import { Shield, AlertTriangle, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
+import { dashboardApi } from '../api/client';
 
 const Dashboard = () => {
-  // Mock data for demonstration
-  const stats = [
+  // Fetch real data from API
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: dashboardApi.getStats,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
+  const { data: recentThreats } = useQuery({
+    queryKey: ['recent-threats'],
+    queryFn: () => dashboardApi.getRecentThreats(5),
+    refetchInterval: 30000,
+  });
+
+  const { data: riskDistributionData } = useQuery({
+    queryKey: ['risk-distribution'],
+    queryFn: dashboardApi.getRiskDistribution,
+  });
+
+  // Transform data for charts
+  const riskDistribution = riskDistributionData?.map((item) => ({
+    name: item.risk_level.charAt(0).toUpperCase() + item.risk_level.slice(1),
+    value: item.count,
+    color: item.risk_level === 'critical' ? '#dc2626' 
+         : item.risk_level === 'high' ? '#ef4444'
+         : item.risk_level === 'medium' ? '#f59e0b'
+         : item.risk_level === 'low' ? '#3b82f6'
+         : '#10b981'
+  })) || [];
+
+  // Stats cards with real data
+  const statsCards = [
     {
       title: 'Total Indicators',
-      value: '1,247',
+      value: stats?.total_indicators || 0,
       change: '+12.5%',
       trend: 'up',
       icon: Shield,
@@ -15,7 +46,7 @@ const Dashboard = () => {
     },
     {
       title: 'Malicious Detected',
-      value: '156',
+      value: stats?.malicious_count || 0,
       change: '+8.2%',
       trend: 'up',
       icon: AlertTriangle,
@@ -24,7 +55,7 @@ const Dashboard = () => {
     },
     {
       title: 'Active Alerts',
-      value: '23',
+      value: stats?.active_alerts || 0,
       change: '-15.3%',
       trend: 'down',
       icon: Activity,
@@ -32,8 +63,8 @@ const Dashboard = () => {
       bgColor: 'bg-yellow-900/20',
     },
     {
-      title: 'Threat Score Avg',
-      value: '42.8',
+      title: 'Critical Threats',
+      value: stats?.critical_count || 0,
       change: '+3.1%',
       trend: 'up',
       icon: TrendingUp,
@@ -52,21 +83,7 @@ const Dashboard = () => {
     { date: 'Nov 7', threats: 185, malicious: 29 },
   ];
 
-  const riskDistribution = [
-    { name: 'Safe', value: 45, color: '#10b981' },
-    { name: 'Low', value: 25, color: '#3b82f6' },
-    { name: 'Medium', value: 18, color: '#f59e0b' },
-    { name: 'High', value: 8, color: '#ef4444' },
-    { name: 'Critical', value: 4, color: '#dc2626' },
-  ];
-
-  const topThreats = [
-    { ip: '192.0.2.100', score: 95, category: 'Botnet', country: 'RU', alerts: 5 },
-    { ip: 'evil-site.com', score: 92, category: 'Phishing', country: 'CN', alerts: 4 },
-    { ip: '198.51.100.25', score: 88, category: 'Malware', country: 'US', alerts: 3 },
-    { ip: '203.0.113.50', score: 85, category: 'C2', country: 'UA', alerts: 3 },
-    { ip: 'spam-host.net', score: 82, category: 'Spam', country: 'BR', alerts: 2 },
-  ];
+  const topThreats = recentThreats?.slice(0, 5) || [];
 
   const getRiskBadge = (score) => {
     if (score >= 90) return 'badge badge-critical';
@@ -82,6 +99,14 @@ const Dashboard = () => {
     return 'LOW';
   };
 
+  if (statsLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-gray-400">Loading dashboard...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -92,7 +117,7 @@ const Dashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
+        {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           const TrendIcon = stat.trend === 'up' ? TrendingUp : TrendingDown;
           const trendColor = stat.trend === 'up' ? 'text-success' : 'text-danger';
@@ -219,22 +244,22 @@ const Dashboard = () => {
               {topThreats.map((threat, index) => (
                 <tr key={index} className="hover:bg-dark-hover transition-colors">
                   <td className="py-3 px-4">
-                    <span className="text-white font-mono text-sm">{threat.ip}</span>
+                    <span className="text-white font-mono text-sm">{threat.indicator_value}</span>
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-2">
-                      <span className="text-white font-bold">{threat.score}</span>
-                      <span className={getRiskBadge(threat.score)}>{getRiskLabel(threat.score)}</span>
+                      <span className="text-white font-bold">{threat.threat_score.toFixed(0)}</span>
+                      <span className={getRiskBadge(threat.threat_score)}>{getRiskLabel(threat.threat_score)}</span>
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-gray-300">{threat.category}</span>
+                    <span className="text-gray-300">{threat.primary_category}</span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="text-gray-300">{threat.country}</span>
+                    <span className="text-gray-300">{threat.indicator_type}</span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="badge badge-warning">{threat.alerts} Active</span>
+                    <span className="badge badge-warning">Active</span>
                   </td>
                   <td className="py-3 px-4">
                     <button className="text-primary-500 hover:text-primary-400 text-sm font-medium transition-colors">
