@@ -39,6 +39,7 @@ ENV/
 .env
 .env.local
 config/api_keys.json
+config/config.json
 
 # Database
 *.db
