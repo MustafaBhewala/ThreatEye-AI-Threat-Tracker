@@ -16,12 +16,22 @@ const Threats = () => {
   // Fetch threats with pagination and filters
   const { data, isLoading, error } = useQuery({
     queryKey: ['threats', page, pageSize, filters, searchQuery],
-    queryFn: () => indicatorsApi.getAll({
-      page,
-      page_size: pageSize,
-      search: searchQuery || undefined,
-      ...filters,
-    }),
+    queryFn: () => {
+      const params = {
+        page,
+        page_size: pageSize,
+      };
+      
+      // Only add filters if they have values
+      if (searchQuery) params.search = searchQuery;
+      if (filters.risk_level) params.risk_level = filters.risk_level;
+      if (filters.indicator_type) params.indicator_type = filters.indicator_type;
+      if (filters.is_malicious !== null && filters.is_malicious !== undefined && filters.is_malicious !== '') {
+        params.is_malicious = filters.is_malicious;
+      }
+      
+      return indicatorsApi.getAll(params);
+    },
     refetchInterval: 30000,
   });
 

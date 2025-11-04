@@ -62,7 +62,15 @@ export const dashboardApi = {
 
 export const indicatorsApi = {
   getAll: (params = {}) => {
-    const queryParams = new URLSearchParams(params).toString();
+    // Filter out null, undefined, and empty string values
+    const cleanParams = Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+    
+    const queryParams = new URLSearchParams(cleanParams).toString();
     return apiClient.get(`/api/indicators/?${queryParams}`);
   },
   
