@@ -80,11 +80,15 @@ class GeminiThreatAnalyzer:
             
             return {
                 'enabled': True,
+                'is_malicious': parsed.get('is_malicious', False),
+                'ai_threat_score': parsed.get('ai_threat_score', threat_score),
+                'classification': parsed.get('classification', 'Unknown'),
+                'confidence': parsed.get('confidence', 'Medium'),
+                'reasoning': parsed.get('reasoning', ''),
                 'insights': parsed.get('insights', []),
                 'recommendations': parsed.get('recommendations', []),
                 'analysis': parsed.get('analysis', ''),
-                'threat_classification': parsed.get('classification', ''),
-                'confidence_assessment': parsed.get('confidence', '')
+                'confidence_assessment': parsed.get('confidence', 'Medium')
             }
             
         except Exception as e:
@@ -124,12 +128,12 @@ class GeminiThreatAnalyzer:
                 f"{risk.get('factor', '')}: {risk.get('details', '')}"
             )
         
-        prompt = f"""You are a cybersecurity threat intelligence analyst. Analyze this threat indicator and provide expert insights.
+        prompt = f"""You are a cybersecurity threat intelligence analyst with expertise in threat classification. Analyze this indicator and make a PREDICTION.
 
 **INDICATOR DETAILS:**
 - Type: {indicator_type.upper()}
 - Value: {indicator_value}
-- Calculated Threat Score: {threat_score:.2f}/100
+- Initial Threat Score: {threat_score:.2f}/100
 
 **EXTERNAL THREAT INTELLIGENCE:**
 {chr(10).join(sources_summary) if sources_summary else '- No external sources available'}
@@ -137,22 +141,34 @@ class GeminiThreatAnalyzer:
 **IDENTIFIED RISK FACTORS:**
 {chr(10).join(risks_summary) if risks_summary else '- No specific risk factors identified'}
 
-**ANALYSIS REQUIRED:**
-Please provide a comprehensive cybersecurity assessment in the following JSON format:
+**YOUR TASK:**
+Based on the evidence above, classify this indicator and provide your expert assessment in JSON format:
 
 {{
+  "is_malicious": true/false,
+  "classification": "One of: Critical-Malware/High-Threat/Phishing/Spam/Suspicious/Safe/Unknown",
+  "confidence": "High/Medium/Low",
+  "ai_threat_score": 0-100,
+  "reasoning": "Brief explanation of your classification decision",
   "insights": [
-    "3-5 concise, actionable insights about this threat (use emojis for visual clarity)"
+    "3-5 concise, actionable insights (use emojis)"
   ],
   "recommendations": [
-    "2-4 specific security recommendations for defenders"
+    "2-4 specific security recommendations"
   ],
-  "analysis": "A 2-3 sentence expert analysis explaining the threat level and context",
-  "classification": "One of: APT/Malware/Phishing/Spam/Suspicious/Benign/Unknown",
-  "confidence": "Your confidence level: High/Medium/Low with brief explanation"
+  "analysis": "A 2-3 sentence expert analysis"
 }}
 
-Be specific, technical, and actionable. Focus on what security teams need to know."""
+**CLASSIFICATION GUIDELINES:**
+- Critical-Malware: Known malware, APT, C&C servers (score: 90-100)
+- High-Threat: Active attacks, exploits, dangerous content (score: 70-89)
+- Phishing: Impersonation, credential theft attempts (score: 60-79)
+- Spam: Bulk/unsolicited content, low quality (score: 30-59)
+- Suspicious: Unusual patterns but not confirmed threats (score: 20-49)
+- Safe: Legitimate, trusted, clean indicators (score: 0-19)
+- Unknown: Insufficient data for classification (score: based on limited data)
+
+**IMPORTANT:** If external sources show high threat scores (>50%) but initial score is low, explain why and adjust your ai_threat_score accordingly."""
         
         return prompt
     

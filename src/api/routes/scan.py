@@ -272,6 +272,28 @@ async def scan_live(
         ai_analysis.get('risk_factors', [])
     )
     
+    # 🎯 AI PREDICTION FUSION - Combine Mathematical + Gemini AI
+    # If Gemini has high confidence and disagrees significantly, use Gemini's prediction
+    if gemini_result.get('enabled') and gemini_result.get('confidence') in ['High', 'high']:
+        gemini_score = gemini_result.get('ai_threat_score', avg_threat_score)
+        gemini_malicious = gemini_result.get('is_malicious', is_malicious)
+        
+        # If Gemini disagrees significantly (>30 point difference), use weighted average
+        score_diff = abs(gemini_score - avg_threat_score)
+        if score_diff > 30:
+            # Gemini overrides with 60% weight, Mathematical gets 40% weight
+            final_score = (gemini_score * 0.6) + (avg_threat_score * 0.4)
+            avg_threat_score = round(final_score, 2)
+            is_malicious = gemini_malicious
+            confidence_level_value = 'high'
+            
+            # Add explanation to AI insights
+            ai_analysis['ai_insights'].insert(0, 
+                f"🤖 AI Override: Gemini AI detected significant threat discrepancy. "
+                f"Adjusted score from {ai_analysis['threat_score']:.1f} to {avg_threat_score:.1f} "
+                f"based on advanced pattern recognition."
+            )
+    
     # Create temporary result object with AI-enhanced data
     result = {
         'found_in_database': found_in_db,

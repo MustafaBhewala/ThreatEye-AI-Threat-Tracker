@@ -472,11 +472,63 @@ const Scan = () => {
                 <div className="space-y-3">
                   <h3 className="text-lg font-bold text-white flex items-center space-x-2">
                     <Brain className="w-5 h-5 text-blue-500 animate-pulse" />
-                    <span>Google Gemini AI Analysis</span>
+                    <span>Google Gemini AI Prediction</span>
                     <span className="text-xs px-2 py-1 bg-blue-900/50 text-blue-300 rounded-full">
                       Real AI
                     </span>
                   </h3>
+                  
+                  {/* AI Prediction Badge */}
+                  {result.gemini_ai.is_malicious !== undefined && (
+                    <div className={`p-4 rounded-lg border-2 ${
+                      result.gemini_ai.is_malicious 
+                        ? 'bg-red-950/30 border-red-500/50' 
+                        : 'bg-green-950/30 border-green-500/50'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          {result.gemini_ai.is_malicious ? (
+                            <AlertTriangle className="w-8 h-8 text-red-500" />
+                          ) : (
+                            <Shield className="w-8 h-8 text-green-500" />
+                          )}
+                          <div>
+                            <div className="text-2xl font-bold text-white">
+                              {result.gemini_ai.is_malicious ? '⚠️ MALICIOUS' : '✅ SAFE'}
+                            </div>
+                            <div className="text-sm text-gray-400 mt-1">
+                              AI Prediction: {result.gemini_ai.classification || 'Unknown'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-3xl font-bold text-white">
+                            {result.gemini_ai.ai_threat_score !== undefined 
+                              ? result.gemini_ai.ai_threat_score.toFixed(1) 
+                              : result.indicator.threat_score.toFixed(1)}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            AI Threat Score
+                          </div>
+                          <div className={`text-xs mt-1 px-2 py-1 rounded ${
+                            result.gemini_ai.confidence === 'High' ? 'bg-green-900/50 text-green-300' :
+                            result.gemini_ai.confidence === 'Medium' ? 'bg-yellow-900/50 text-yellow-300' :
+                            'bg-gray-900/50 text-gray-300'
+                          }`}>
+                            {result.gemini_ai.confidence} Confidence
+                          </div>
+                        </div>
+                      </div>
+                      {result.gemini_ai.reasoning && (
+                        <div className="mt-3 pt-3 border-t border-gray-700/50">
+                          <p className="text-sm text-gray-300">
+                            <span className="font-semibold text-white">Reasoning: </span>
+                            {result.gemini_ai.reasoning}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   {/* AI Expert Analysis */}
                   {result.gemini_ai.analysis && (

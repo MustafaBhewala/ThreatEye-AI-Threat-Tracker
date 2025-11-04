@@ -17,11 +17,11 @@ class AIThreatScorer:
     
     def __init__(self):
         self.weights = {
-            'abuse_score': 0.35,
-            'detection_ratio': 0.30,
-            'reputation': 0.15,
-            'behavioral_signals': 0.12,
-            'metadata_analysis': 0.08
+            'abuse_score': 0.30,        # AbuseIPDB (IPs only)
+            'detection_ratio': 0.25,    # VirusTotal
+            'otx_reputation': 0.20,     # AlienVault OTX
+            'behavioral_signals': 0.15, # AI behavioral analysis
+            'metadata_analysis': 0.10   # AI metadata analysis
         }
     
     def calculate_threat_score(
@@ -82,6 +82,24 @@ class AIThreatScorer:
                         'severity': severity,
                         'factor': 'Multi-engine detection',
                         'details': f"{malicious_count}/{source.get('total_engines', 0)} engines flagged"
+                    })
+            
+            # AlienVault OTX Analysis
+            elif source_name == 'AlienVault OTX':
+                otx_score = self._analyze_otx(source)
+                scores.append({
+                    'source': 'AlienVault OTX',
+                    'score': otx_score,
+                    'weight': self.weights['otx_reputation']
+                })
+                
+                if source.get('is_malicious'):
+                    pulse_count = source.get('pulse_count', 0)
+                    severity = 'high' if otx_score > 75 else 'medium'
+                    risk_factors.append({
+                        'severity': severity,
+                        'factor': 'OTX threat intelligence',
+                        'details': f"{pulse_count} threat pulses, {otx_score:.0f}% reputation risk"
                     })
         
         # 2. Behavioral Pattern Analysis (AI heuristics)
@@ -159,6 +177,22 @@ class AIThreatScorer:
         score = 100 / (1 + math.exp(-0.3 * (malicious - 5)))
         
         return min(100, score)
+    
+    def _analyze_otx(self, source_data: Dict[str, Any]) -> float:
+        """Analyze AlienVault OTX data"""
+        # Get the threat score from OTX
+        otx_score = source_data.get('threat_score', 0)
+        pulse_count = source_data.get('pulse_count', 0)
+        
+        # Boost score based on pulse count (threat intelligence references)
+        if pulse_count > 10:
+            otx_score = min(100, otx_score * 1.15)
+        elif pulse_count > 5:
+            otx_score = min(100, otx_score * 1.10)
+        elif pulse_count > 0:
+            otx_score = min(100, otx_score * 1.05)
+        
+        return otx_score
     
     def _analyze_behavioral_patterns(
         self,
