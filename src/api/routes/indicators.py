@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, or_, func
 from typing import List, Optional
+from datetime import datetime
 import sys
 import os
 
@@ -115,6 +116,7 @@ async def search_indicator(
 ):
     """
     Search for a specific indicator by its value (IP/Domain/URL)
+    Updates last_analyzed timestamp to track recent lookups
     """
     indicator = db.query(ThreatIndicator).filter(
         ThreatIndicator.indicator_value == indicator_value,
@@ -123,6 +125,10 @@ async def search_indicator(
     
     if not indicator:
         return None
+    
+    # Update last_analyzed timestamp to track this lookup
+    indicator.last_analyzed = datetime.utcnow()
+    db.commit()
     
     # Get enrichment data
     enrichment = db.query(EnrichmentData).filter(

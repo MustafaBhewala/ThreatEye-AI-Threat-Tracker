@@ -286,3 +286,34 @@ async def get_recent_alerts(
         }
         for alert in alerts
     ]
+
+
+@router.get("/recently-analyzed")
+async def get_recently_analyzed(
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """
+    Get recently analyzed/checked threat indicators (based on last_analyzed timestamp)
+    Shows threats that were recently looked up or scanned
+    """
+    threats = db.query(ThreatIndicator).filter(
+        ThreatIndicator.is_active == True,
+        ThreatIndicator.is_malicious == True,
+        ThreatIndicator.last_analyzed.isnot(None)
+    ).order_by(desc(ThreatIndicator.last_analyzed)).limit(limit).all()
+    
+    return [
+        {
+            "id": t.id,
+            "indicator_type": t.indicator_type.value,
+            "indicator_value": t.indicator_value,
+            "threat_score": t.threat_score,
+            "risk_level": t.risk_level.value,
+            "primary_category": t.primary_category.value,
+            "confidence_level": t.confidence_level.value,
+            "last_analyzed": t.last_analyzed,
+            "last_seen": t.last_seen
+        }
+        for t in threats
+    ]

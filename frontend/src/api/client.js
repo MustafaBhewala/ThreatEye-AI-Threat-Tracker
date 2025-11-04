@@ -54,6 +54,7 @@ export const dashboardApi = {
   getGeographicDistribution: () => apiClient.get('/api/dashboard/geographic-distribution'),
   getTopAsns: (limit = 10) => apiClient.get(`/api/dashboard/top-asns?limit=${limit}`),
   getRecentAlerts: (limit = 5) => apiClient.get(`/api/dashboard/recent-alerts?limit=${limit}`),
+  getRecentlyAnalyzed: (limit = 10) => apiClient.get(`/api/dashboard/recently-analyzed?limit=${limit}`),
 };
 
 // ============================================

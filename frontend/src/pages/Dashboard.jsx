@@ -4,22 +4,29 @@ import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../api/client';
 
 const Dashboard = () => {
-  // Fetch real data from API
+  // Fetch real data from API with more frequent updates
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: dashboardApi.getStats,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 10000, // Refetch every 10 seconds for real-time feel
   });
 
   const { data: recentThreats } = useQuery({
     queryKey: ['recent-threats'],
     queryFn: () => dashboardApi.getRecentThreats(5),
-    refetchInterval: 30000,
+    refetchInterval: 10000,
+  });
+
+  const { data: recentlyAnalyzed } = useQuery({
+    queryKey: ['recently-analyzed'],
+    queryFn: () => dashboardApi.getRecentlyAnalyzed(8),
+    refetchInterval: 5000, // Update every 5 seconds for real-time tracking
   });
 
   const { data: riskDistributionData } = useQuery({
     queryKey: ['risk-distribution'],
     queryFn: dashboardApi.getRiskDistribution,
+    refetchInterval: 30000,
   });
 
   // Transform data for charts
@@ -191,6 +198,8 @@ const Dashboard = () => {
           </ResponsiveContainer>
         </div>
 
+      {/* Risk Distribution and Recently Analyzed */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Risk Distribution Pie Chart */}
         <div className="card">
           <div className="mb-4">
@@ -218,6 +227,63 @@ const Dashboard = () => {
               <Legend />
             </PieChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* Recently Analyzed Malicious Threats */}
+        <div className="card">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white flex items-center space-x-2">
+                <Activity className="w-5 h-5 text-primary-500" />
+                <span>Recently Checked Threats</span>
+              </h2>
+              <p className="text-gray-400 text-sm">Live activity - malicious indicators scanned</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-xs text-green-500">Live</span>
+            </div>
+          </div>
+          
+          <div className="space-y-2 max-h-[280px] overflow-y-auto">
+            {recentlyAnalyzed && recentlyAnalyzed.length > 0 ? (
+              recentlyAnalyzed.map((threat, index) => (
+                <div 
+                  key={threat.id} 
+                  className="p-3 bg-dark-bg rounded-lg border border-gray-700 hover:border-primary-600 transition-all cursor-pointer animate-fadeIn"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-white font-mono text-sm font-medium truncate flex-1">
+                      {threat.indicator_value}
+                    </span>
+                    <span className={`ml-2 px-2 py-0.5 rounded text-xs font-medium ${
+                      threat.risk_level === 'critical' ? 'bg-red-900/50 text-red-300' :
+                      threat.risk_level === 'high' ? 'bg-red-800/30 text-red-400' :
+                      threat.risk_level === 'medium' ? 'bg-yellow-800/30 text-yellow-400' :
+                      'bg-blue-800/30 text-blue-400'
+                    }`}>
+                      {threat.risk_level.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400 capitalize">
+                      {threat.primary_category.replace('_', ' ')} • {threat.indicator_type}
+                    </span>
+                    <span className="text-gray-500">
+                      {new Date(threat.last_analyzed).toLocaleTimeString()}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No recent activity</p>
+                <p className="text-xs text-gray-500 mt-1">Scanned threats will appear here</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
