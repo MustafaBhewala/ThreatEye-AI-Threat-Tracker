@@ -19,6 +19,7 @@ from src.storage.models import (
     ThreatIndicator, IndicatorType, RiskLevel, ThreatCategory, ConfidenceLevel
 )
 from src.api.schemas import ThreatIndicatorDetailResponse
+from src.ml_engine.threat_scorer import ai_scorer
 
 router = APIRouter()
 
@@ -200,10 +201,19 @@ async def scan_live(
         if vt_result.get('is_malicious'):
             is_malicious = True
     
-    # Calculate aggregate threat score
-    avg_threat_score = sum(threat_scores) / len(threat_scores) if threat_scores else 0
+    # 🤖 AI-POWERED THREAT ANALYSIS
+    ai_analysis = ai_scorer.calculate_threat_score(
+        indicator_value,
+        indicator_type.value,
+        external_results
+    )
     
-    # Create temporary result object
+    # Use AI-calculated scores (more accurate than simple average)
+    avg_threat_score = ai_analysis['threat_score']
+    is_malicious = ai_analysis['is_malicious']
+    confidence_level_value = ai_analysis['confidence_level']
+    
+    # Create temporary result object with AI-enhanced data
     result = {
         'found_in_database': False,
         'indicator': {
@@ -211,13 +221,13 @@ async def scan_live(
             'indicator_type': indicator_type.value,
             'indicator_value': indicator_value,
             'threat_score': avg_threat_score,
-            'risk_level': calculate_risk_level(avg_threat_score).value,
+            'risk_level': ai_analysis['risk_level'],
             'is_malicious': is_malicious,
             'primary_category': ThreatCategory.UNKNOWN.value,
-            'confidence_level': ConfidenceLevel.MEDIUM.value if external_results else ConfidenceLevel.LOW.value,
+            'confidence_level': confidence_level_value,
             'categories': [],
             'feed_hits': len(external_results),
-            'confidence_score': len(external_results) * 25.0,  # 25% per source
+            'confidence_score': ai_analysis['confidence'],
             'first_seen': datetime.utcnow(),
             'last_seen': datetime.utcnow(),
             'last_analyzed': datetime.utcnow(),
@@ -225,7 +235,12 @@ async def scan_live(
             'updated_at': datetime.utcnow()
         },
         'external_sources': external_results,
-        'enrichment': None
+        'enrichment': None,
+        'ai_analysis': {
+            'risk_factors': ai_analysis.get('risk_factors', []),
+            'insights': ai_analysis.get('ai_insights', []),
+            'confidence': round(ai_analysis['confidence'], 2)
+        }
     }
     
     # Extract enrichment data from external sources

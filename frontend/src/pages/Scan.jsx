@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { indicatorsApi, scanApi } from '../api/client';
-import { Search, AlertTriangle, Shield, Globe, MapPin, Server, Calendar, Activity, ExternalLink, Zap } from 'lucide-react';
+import { Search, AlertTriangle, Shield, Globe, MapPin, Server, Calendar, Activity, ExternalLink, Zap, Brain, Lightbulb } from 'lucide-react';
 
 const Scan = () => {
   const [searchValue, setSearchValue] = useState('');
@@ -358,6 +358,65 @@ const Scan = () => {
                     <div className="bg-blue-900/20 border border-blue-900/50 rounded-lg p-3 flex items-center space-x-2">
                       <Activity className="w-5 h-5 text-blue-400" />
                       <span className="text-blue-300 text-sm">This indicator was found in our database</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* AI Analysis Section */}
+              {result.ai_analysis && (result.ai_analysis.insights?.length > 0 || result.ai_analysis.risk_factors?.length > 0) && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-bold text-white flex items-center space-x-2">
+                    <Brain className="w-5 h-5 text-purple-500" />
+                    <span>AI-Powered Analysis</span>
+                    <span className="text-xs px-2 py-1 bg-purple-900/50 text-purple-300 rounded-full">
+                      {result.ai_analysis.confidence}% Confidence
+                    </span>
+                  </h3>
+                  
+                  {/* AI Insights */}
+                  {result.ai_analysis.insights && result.ai_analysis.insights.length > 0 && (
+                    <div className="bg-linear-to-br from-purple-950/30 to-blue-950/30 rounded-lg p-4 border border-purple-900/50">
+                      <h4 className="text-purple-300 font-medium mb-3 flex items-center space-x-2">
+                        <Lightbulb className="w-4 h-4" />
+                        <span>AI Insights</span>
+                      </h4>
+                      <div className="space-y-2">
+                        {result.ai_analysis.insights.map((insight, idx) => (
+                          <div key={idx} className="flex items-start space-x-2 text-gray-200">
+                            <span className="mt-0.5">•</span>
+                            <span className="text-sm">{insight}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Risk Factors */}
+                  {result.ai_analysis.risk_factors && result.ai_analysis.risk_factors.length > 0 && (
+                    <div className="bg-dark-bg rounded-lg p-4 border border-gray-700">
+                      <h4 className="text-red-400 font-medium mb-3 flex items-center space-x-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>Identified Risk Factors</span>
+                      </h4>
+                      <div className="space-y-3">
+                        {result.ai_analysis.risk_factors.map((risk, idx) => (
+                          <div key={idx} className="flex items-start space-x-3">
+                            <span className={`px-2 py-1 rounded text-xs font-medium uppercase shrink-0 ${
+                              risk.severity === 'critical' ? 'bg-red-900/50 text-red-300' :
+                              risk.severity === 'high' ? 'bg-orange-900/50 text-orange-300' :
+                              risk.severity === 'medium' ? 'bg-yellow-900/50 text-yellow-300' :
+                              'bg-gray-700 text-gray-300'
+                            }`}>
+                              {risk.severity}
+                            </span>
+                            <div className="flex-1">
+                              <div className="text-white font-medium text-sm">{risk.factor}</div>
+                              <div className="text-gray-400 text-xs mt-1">{risk.details}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
