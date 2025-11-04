@@ -1,0 +1,62 @@
+{
+  "api_keys": {
+    "virustotal": "YOUR_VIRUSTOTAL_API_KEY_HERE",
+    "abuseipdb": "YOUR_ABUSEIPDB_API_KEY_HERE",
+    "otx": "YOUR_OTX_API_KEY_HERE"
+  },
+  "database": {
+    "path": "data/threateye.db",
+    "echo": false
+  },
+  "collectors": {
+    "sync_interval_minutes": 60,
+    "batch_size": 100,
+    "enabled_feeds": ["virustotal", "abuseipdb", "otx"]
+  },
+  "ml_engine": {
+    "model_path": "models/risk_classifier.pkl",
+    "anomaly_model_path": "models/anomaly_detector.pkl",
+    "retrain_interval_days": 7,
+    "threshold_malicious": 70,
+    "threshold_suspicious": 40
+  },
+  "enrichment": {
+    "enable_whois": true,
+    "enable_geoip": true,
+    "enable_asn": true,
+    "geoip_db_path": "data/GeoLite2-City.mmdb",
+    "cache_ttl_hours": 24
+  },
+  "alerts": {
+    "enabled": true,
+    "threshold_score": 80,
+    "channels": {
+      "email": {
+        "enabled": false,
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "sender": "alerts@threateye.local",
+        "recipients": ["security-team@example.com"]
+      },
+      "slack": {
+        "enabled": false,
+        "webhook_url": "YOUR_SLACK_WEBHOOK_URL_HERE"
+      }
+    }
+  },
+  "reports": {
+    "auto_generate": true,
+    "schedule_cron": "0 9 * * *",
+    "output_dir": "data/reports",
+    "formats": ["csv", "pdf"]
+  },
+  "api": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "cors_origins": ["http://localhost:5173", "http://localhost:3000"],
+    "rate_limit": {
+      "enabled": true,
+      "requests_per_minute": 60
+    }
+  }
+}
