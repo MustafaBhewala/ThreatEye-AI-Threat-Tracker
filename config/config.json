@@ -3,7 +3,7 @@
     "virustotal": "0b3e819a38f744183a8b8ec3fa73375f05e901a0776a96b41f46b594c3ac38ea",
     "abuseipdb": "0e606e108ecc9e383bf4421788e2f2799ac52ad2a658af6296af4c1753ce00951eca762f3300b0c5",
     "otx": "a33f91641c4a6f5920358cf319ee49927396477485d3efc009ec6714b0c707eb",
-    "gemini": "YOUR_GEMINI_API_KEY_HERE"
+    "gemini": "AIzaSyAXGE7eEA0agFX9s4vt0FM2j6KFe-hVG00"
   },
   "database": {
     "path": "data/threateye.db",

@@ -21,10 +21,12 @@ class GeminiThreatAnalyzer:
         if api_key and api_key != "YOUR_GEMINI_API_KEY_HERE":
             try:
                 genai.configure(api_key=api_key)
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                # Use Gemini 2.0 Flash (latest stable model)
+                self.model = genai.GenerativeModel('gemini-2.0-flash')
+                print(f"✅ Gemini AI 2.0 initialized successfully")
                 self.enabled = True
             except Exception as e:
-                print(f"Failed to initialize Gemini: {e}")
+                print(f"❌ Failed to initialize Gemini: {e}")
                 self.enabled = False
         else:
             self.enabled = False
