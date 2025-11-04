@@ -6,7 +6,8 @@ import {
   FileText,
   Settings,
   Search,
-  Activity
+  Activity,
+  Clock
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -15,6 +16,7 @@ const Sidebar = () => {
     { to: '/threats', icon: Shield, label: 'Threats' },
     { to: '/alerts', icon: AlertTriangle, label: 'Alerts' },
     { to: '/scan', icon: Search, label: 'Scan' },
+    { to: '/history', icon: Clock, label: 'History' },
     { to: '/activity', icon: Activity, label: 'Activity' },
     { to: '/reports', icon: FileText, label: 'Reports' },
     { to: '/settings', icon: Settings, label: 'Settings' },

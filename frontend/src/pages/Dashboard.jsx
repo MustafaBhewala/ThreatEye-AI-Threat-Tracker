@@ -29,6 +29,30 @@ const Dashboard = () => {
     refetchInterval: 30000,
   });
 
+  const { data: threatTrendsData } = useQuery({
+    queryKey: ['threat-trends'],
+    queryFn: () => dashboardApi.getThreatTrends(7),
+    refetchInterval: 30000,
+  });
+
+  const { data: topMaliciousIPs } = useQuery({
+    queryKey: ['top-malicious-ips'],
+    queryFn: () => dashboardApi.getTopMaliciousIPs(10),
+    refetchInterval: 15000,
+  });
+
+  const { data: topMaliciousDomains } = useQuery({
+    queryKey: ['top-malicious-domains'],
+    queryFn: () => dashboardApi.getTopMaliciousDomains(10),
+    refetchInterval: 15000,
+  });
+
+  const { data: liveStats } = useQuery({
+    queryKey: ['live-stats'],
+    queryFn: dashboardApi.getLiveStats,
+    refetchInterval: 3000, // Update every 3 seconds for real-time
+  });
+
   // Transform data for charts
   const riskDistribution = riskDistributionData?.map((item) => ({
     name: item.risk_level.charAt(0).toUpperCase() + item.risk_level.slice(1),
@@ -39,6 +63,9 @@ const Dashboard = () => {
          : item.risk_level === 'low' ? '#3b82f6'
          : '#10b981'
   })) || [];
+
+  // Use real threat trends data
+  const threatTrendData = threatTrendsData || [];
 
   // Stats cards with real data
   const statsCards = [
@@ -80,16 +107,6 @@ const Dashboard = () => {
     },
   ];
 
-  const threatTrendData = [
-    { date: 'Nov 1', threats: 120, malicious: 15 },
-    { date: 'Nov 2', threats: 145, malicious: 22 },
-    { date: 'Nov 3', threats: 132, malicious: 18 },
-    { date: 'Nov 4', threats: 178, malicious: 28 },
-    { date: 'Nov 5', threats: 165, malicious: 24 },
-    { date: 'Nov 6', threats: 198, malicious: 32 },
-    { date: 'Nov 7', threats: 185, malicious: 29 },
-  ];
-
   const topThreats = recentThreats?.slice(0, 5) || [];
 
   const getRiskBadge = (score) => {
@@ -121,6 +138,39 @@ const Dashboard = () => {
         <h1 className="text-3xl font-bold text-white">Dashboard</h1>
         <p className="text-gray-400 mt-1">Real-time threat intelligence overview</p>
       </div>
+
+      {/* Live Stats Banner */}
+      {liveStats && (
+        <div className="card bg-gradient-to-r from-primary-900/20 to-purple-900/20 border-primary-600/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-green-400">LIVE</span>
+              </div>
+              <span className="text-gray-400 text-sm">Last 24 Hours</span>
+            </div>
+            <div className="grid grid-cols-4 gap-8">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">{liveStats.new_threats_24h}</div>
+                <div className="text-xs text-gray-400 mt-1">New Threats</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-400">{liveStats.new_malicious_24h}</div>
+                <div className="text-xs text-gray-400 mt-1">Malicious</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-orange-400">{liveStats.new_critical_24h}</div>
+                <div className="text-xs text-gray-400 mt-1">Critical</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-400">{liveStats.scans_last_hour}</div>
+                <div className="text-xs text-gray-400 mt-1">Scans/Hour</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -282,6 +332,125 @@ const Dashboard = () => {
                 <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No recent activity</p>
                 <p className="text-xs text-gray-500 mt-1">Scanned threats will appear here</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Top Malicious IPs and Domains */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Malicious IPs */}
+        <div className="card">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">Top Malicious IPs</h2>
+              <p className="text-gray-400 text-sm">Highest threat score IP addresses</p>
+            </div>
+            <Shield className="w-6 h-6 text-red-500" />
+          </div>
+          
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {topMaliciousIPs && topMaliciousIPs.length > 0 ? (
+              topMaliciousIPs.map((ip, index) => (
+                <div 
+                  key={ip.id} 
+                  className="p-3 bg-dark-bg rounded-lg border border-gray-700 hover:border-red-600 transition-all cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-white font-bold text-lg">#{index + 1}</span>
+                      <span className="text-white font-mono text-sm">{ip.indicator_value}</span>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      ip.risk_level === 'critical' ? 'bg-red-900 text-red-200' :
+                      ip.risk_level === 'high' ? 'bg-red-800/50 text-red-300' :
+                      'bg-orange-800/50 text-orange-300'
+                    }`}>
+                      {ip.threat_score.toFixed(0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400 capitalize">
+                      {ip.primary_category.replace('_', ' ')}
+                    </span>
+                    <span className="text-gray-500">
+                      {ip.feed_hits} feed hits
+                    </span>
+                  </div>
+                  <div className="mt-1">
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs ${
+                      ip.confidence_level === 'high' ? 'bg-green-900/30 text-green-400' :
+                      ip.confidence_level === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                      'bg-gray-800/30 text-gray-400'
+                    }`}>
+                      {ip.confidence_level} confidence
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <Shield className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No malicious IPs detected</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Top Malicious Domains */}
+        <div className="card">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">Top Malicious Domains</h2>
+              <p className="text-gray-400 text-sm">Highest threat score domains</p>
+            </div>
+            <AlertTriangle className="w-6 h-6 text-orange-500" />
+          </div>
+          
+          <div className="space-y-2 max-h-[400px] overflow-y-auto">
+            {topMaliciousDomains && topMaliciousDomains.length > 0 ? (
+              topMaliciousDomains.map((domain, index) => (
+                <div 
+                  key={domain.id} 
+                  className="p-3 bg-dark-bg rounded-lg border border-gray-700 hover:border-orange-600 transition-all cursor-pointer"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-white font-bold text-lg">#{index + 1}</span>
+                      <span className="text-white font-mono text-sm break-all">{domain.indicator_value}</span>
+                    </div>
+                    <span className={`px-2 py-1 rounded text-xs font-bold ${
+                      domain.risk_level === 'critical' ? 'bg-red-900 text-red-200' :
+                      domain.risk_level === 'high' ? 'bg-red-800/50 text-red-300' :
+                      'bg-orange-800/50 text-orange-300'
+                    }`}>
+                      {domain.threat_score.toFixed(0)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-400 capitalize">
+                      {domain.primary_category.replace('_', ' ')}
+                    </span>
+                    <span className="text-gray-500">
+                      {domain.feed_hits} feed hits
+                    </span>
+                  </div>
+                  <div className="mt-1">
+                    <span className={`inline-block px-2 py-0.5 rounded text-xs ${
+                      domain.confidence_level === 'high' ? 'bg-green-900/30 text-green-400' :
+                      domain.confidence_level === 'medium' ? 'bg-yellow-900/30 text-yellow-400' :
+                      'bg-gray-800/30 text-gray-400'
+                    }`}>
+                      {domain.confidence_level} confidence
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <AlertTriangle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                <p>No malicious domains detected</p>
               </div>
             )}
           </div>

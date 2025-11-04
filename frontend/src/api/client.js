@@ -55,6 +55,10 @@ export const dashboardApi = {
   getTopAsns: (limit = 10) => apiClient.get(`/api/dashboard/top-asns?limit=${limit}`),
   getRecentAlerts: (limit = 5) => apiClient.get(`/api/dashboard/recent-alerts?limit=${limit}`),
   getRecentlyAnalyzed: (limit = 10) => apiClient.get(`/api/dashboard/recently-analyzed?limit=${limit}`),
+  getThreatTrends: (days = 7) => apiClient.get(`/api/dashboard/threat-trends?days=${days}`),
+  getTopMaliciousIPs: (limit = 10) => apiClient.get(`/api/dashboard/top-malicious-ips?limit=${limit}`),
+  getTopMaliciousDomains: (limit = 10) => apiClient.get(`/api/dashboard/top-malicious-domains?limit=${limit}`),
+  getLiveStats: () => apiClient.get('/api/dashboard/live-stats'),
 };
 
 // ============================================
@@ -90,6 +94,23 @@ export const scanApi = {
   liveScan: (indicatorValue) => apiClient.post('/api/scan/live', null, {
     params: { indicator_value: indicatorValue }
   }),
+};
+
+// ============================================
+// History APIs
+// ============================================
+
+export const historyApi = {
+  getRecent: (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    return apiClient.get(`/api/history/recent?${queryParams}`);
+  },
+  getStats: (days = 7) => apiClient.get(`/api/history/stats?days=${days}`),
+  deleteItem: (id) => apiClient.delete(`/api/history/${id}`),
+  clearHistory: (days = null) => {
+    const params = days ? `?days=${days}` : '';
+    return apiClient.delete(`/api/history/clear${params}`);
+  },
 };
 
 // ============================================

@@ -6,6 +6,7 @@ import Threats from './pages/Threats';
 import Alerts from './pages/Alerts';
 import Scan from './pages/Scan';
 import Activity from './pages/Activity';
+import History from './pages/History';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 
@@ -30,6 +31,7 @@ function App() {
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/scan" element={<Scan />} />
             <Route path="/activity" element={<Activity />} />
+            <Route path="/history" element={<History />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
           </Route>

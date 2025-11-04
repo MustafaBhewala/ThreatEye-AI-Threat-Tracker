@@ -11,18 +11,31 @@ const Scan = () => {
     mutationFn: (value) => scanApi.liveScan(value),
     onSuccess: (data) => {
       // Transform the response to match the expected format
-      setResult({
-        ...data.indicator,
-        enrichment: data.enrichment,
-        external_sources: data.external_sources,
-        ai_analysis: data.ai_analysis,
-        gemini_ai: data.gemini_ai,
-        found_in_database: data.found_in_database,
-        saved_to_database: data.saved_to_database
-      });
+      if (data.indicator) {
+        setResult({
+          ...data.indicator,
+          enrichment: data.enrichment,
+          external_sources: data.external_sources,
+          ai_analysis: data.ai_analysis,
+          gemini_ai: data.gemini_ai,
+          found_in_database: data.found_in_database,
+          saved_to_database: data.saved_to_database
+        });
+      } else {
+        // No threat found
+        setResult({ 
+          error: true, 
+          message: 'No threat data available',
+          indicator_value: data.indicator_value || 'Unknown'
+        });
+      }
     },
     onError: (error) => {
-      setResult({ error: true, message: error.message || 'Failed to scan indicator' });
+      console.error('Scan error:', error);
+      setResult({ 
+        error: true, 
+        message: error.response?.data?.detail || error.message || 'Failed to scan indicator' 
+      });
     },
   });
 
