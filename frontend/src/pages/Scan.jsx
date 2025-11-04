@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { indicatorsApi } from '../api/client';
-import { Search, AlertTriangle, Shield, Globe, MapPin, Server, Calendar, Activity, ExternalLink } from 'lucide-react';
+import { indicatorsApi, scanApi } from '../api/client';
+import { Search, AlertTriangle, Shield, Globe, MapPin, Server, Calendar, Activity, ExternalLink, Zap } from 'lucide-react';
 
 const Scan = () => {
   const [searchValue, setSearchValue] = useState('');
   const [result, setResult] = useState(null);
+  const [scanMode, setScanMode] = useState('database'); // 'database' or 'live'
 
   const searchMutation = useMutation({
     mutationFn: (value) => indicatorsApi.search(value),
@@ -17,12 +18,35 @@ const Scan = () => {
     },
   });
 
+  const liveScanMutation = useMutation({
+    mutationFn: (value) => scanApi.liveScan(value),
+    onSuccess: (data) => {
+      // Transform the response to match the expected format
+      setResult({
+        ...data.indicator,
+        enrichment: data.enrichment,
+        external_sources: data.external_sources,
+        found_in_database: data.found_in_database,
+        saved_to_database: data.saved_to_database
+      });
+    },
+    onError: (error) => {
+      setResult({ error: true, message: error.message || 'Failed to scan indicator' });
+    },
+  });
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchValue.trim()) {
-      searchMutation.mutate(searchValue.trim());
+      if (scanMode === 'live') {
+        liveScanMutation.mutate(searchValue.trim());
+      } else {
+        searchMutation.mutate(searchValue.trim());
+      }
     }
   };
+
+  const isLoading = searchMutation.isPending || liveScanMutation.isPending;
 
   const getRiskBadge = (riskLevel) => {
     const badges = {
@@ -54,6 +78,32 @@ const Scan = () => {
 
       {/* Search Form */}
       <div className="bg-dark-card rounded-lg border border-gray-700 p-8">
+        {/* Scan Mode Toggle */}
+        <div className="mb-6 flex items-center justify-center space-x-4">
+          <button
+            onClick={() => setScanMode('database')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+              scanMode === 'database'
+                ? 'bg-primary-600 text-white'
+                : 'bg-dark-bg text-gray-400 hover:text-white'
+            }`}
+          >
+            <Search className="w-4 h-4" />
+            <span>Database Search</span>
+          </button>
+          <button
+            onClick={() => setScanMode('live')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all ${
+              scanMode === 'live'
+                ? 'bg-green-600 text-white'
+                : 'bg-dark-bg text-gray-400 hover:text-white'
+            }`}
+          >
+            <Zap className="w-4 h-4" />
+            <span>Live Scan (External APIs)</span>
+          </button>
+        </div>
+
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -67,10 +117,14 @@ const Scan = () => {
           </div>
           <button
             type="submit"
-            disabled={searchMutation.isPending}
-            className="w-full py-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
+            className={`w-full py-4 rounded-lg font-medium text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              scanMode === 'live'
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-primary-600 hover:bg-primary-700 text-white'
+            }`}
           >
-            {searchMutation.isPending ? 'Searching...' : 'Search Database'}
+            {isLoading ? 'Scanning...' : scanMode === 'live' ? 'Live Scan with External APIs' : 'Search Database'}
           </button>
         </form>
 
@@ -247,6 +301,65 @@ const Scan = () => {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* External Sources from Live Scan */}
+              {result.external_sources && result.external_sources.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-lg font-bold text-white flex items-center space-x-2">
+                    <Zap className="w-5 h-5 text-green-500" />
+                    <span>Live Threat Intelligence Sources</span>
+                  </h3>
+                  {result.external_sources.map((source, idx) => (
+                    <div key={idx} className="bg-dark-bg rounded-lg p-4 border border-gray-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${source.is_malicious ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                          <span className="text-primary-500 font-medium">{source.source}</span>
+                        </div>
+                        <span className={`px-3 py-1 rounded text-sm font-medium ${
+                          source.is_malicious 
+                            ? 'bg-red-900/50 text-red-300' 
+                            : 'bg-green-900/50 text-green-300'
+                        }`}>
+                          {source.is_malicious ? 'MALICIOUS' : 'CLEAN'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                        {source.threat_score !== undefined && (
+                          <div>
+                            <span className="text-gray-400">Threat Score:</span>
+                            <span className="text-white font-medium ml-2">{source.threat_score.toFixed(0)}%</span>
+                          </div>
+                        )}
+                        {source.total_reports !== undefined && (
+                          <div>
+                            <span className="text-gray-400">Reports:</span>
+                            <span className="text-white font-medium ml-2">{source.total_reports}</span>
+                          </div>
+                        )}
+                        {source.malicious_count !== undefined && (
+                          <div>
+                            <span className="text-gray-400">Detections:</span>
+                            <span className="text-white font-medium ml-2">{source.malicious_count}/{source.total_engines}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {result.found_in_database === false && result.saved_to_database && (
+                    <div className="bg-green-900/20 border border-green-900/50 rounded-lg p-3 flex items-center space-x-2">
+                      <Shield className="w-5 h-5 text-green-400" />
+                      <span className="text-green-300 text-sm">This threat has been saved to the database for future reference</span>
+                    </div>
+                  )}
+                  {result.found_in_database && (
+                    <div className="bg-blue-900/20 border border-blue-900/50 rounded-lg p-3 flex items-center space-x-2">
+                      <Activity className="w-5 h-5 text-blue-400" />
+                      <span className="text-blue-300 text-sm">This indicator was found in our database</span>
+                    </div>
+                  )}
                 </div>
               )}
 

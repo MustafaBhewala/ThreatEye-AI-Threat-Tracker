@@ -83,6 +83,16 @@ export const indicatorsApi = {
 };
 
 // ============================================
+// Scan APIs
+// ============================================
+
+export const scanApi = {
+  liveScan: (indicatorValue) => apiClient.post('/api/scan/live', null, {
+    params: { indicator_value: indicatorValue }
+  }),
+};
+
+// ============================================
 // Alerts APIs (to be implemented)
 // ============================================
 
