@@ -24,6 +24,12 @@ class RiskLevelEnum(str, Enum):
     CRITICAL = "critical"
 
 
+class ConfidenceLevelEnum(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
 class ThreatCategoryEnum(str, Enum):
     MALWARE = "malware"
     PHISHING = "phishing"
@@ -33,6 +39,7 @@ class ThreatCategoryEnum(str, Enum):
     SCANNING = "scanning"
     BRUTE_FORCE = "brute_force"
     DDOS = "ddos"
+    MALICIOUS_IP = "malicious_ip"
     SUSPICIOUS = "suspicious"
     UNKNOWN = "unknown"
 
@@ -50,6 +57,7 @@ class ThreatIndicatorResponse(BaseModel):
     categories: List[str] = []
     feed_hits: int
     confidence_score: float
+    confidence_level: ConfidenceLevelEnum
     first_seen: datetime
     last_seen: datetime
     last_analyzed: Optional[datetime] = None

@@ -183,55 +183,70 @@ const Scan = () => {
               </div>
 
               {/* Enrichment Data */}
-              {result.enrichments && result.enrichments.length > 0 && (
+              {result.enrichment && (result.enrichment.geo_country || result.enrichment.asn_number || result.enrichment.isp_name) && (
                 <div className="space-y-3">
                   <h3 className="text-lg font-bold text-white flex items-center space-x-2">
                     <Globe className="w-5 h-5" />
                     <span>Enrichment Data</span>
                   </h3>
-                  {result.enrichments.map((enrichment, idx) => (
-                    <div key={idx} className="bg-dark-bg rounded-lg p-4 border border-gray-700">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-primary-500 font-medium">{enrichment.source}</span>
-                        <span className="text-gray-400 text-sm">{new Date(enrichment.retrieved_at).toLocaleString()}</span>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {enrichment.geo_country && (
-                          <div>
-                            <div className="flex items-center space-x-2 mb-1">
-                              <MapPin className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-400 text-sm">Location</span>
-                            </div>
-                            <div className="text-white">{enrichment.geo_country}</div>
+                  <div className="bg-dark-bg rounded-lg p-4 border border-gray-700">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {result.enrichment.geo_country && (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <MapPin className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-400 text-sm">Country</span>
                           </div>
-                        )}
-                        {enrichment.asn && (
-                          <div>
-                            <div className="flex items-center space-x-2 mb-1">
-                              <Server className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-400 text-sm">ASN</span>
-                            </div>
-                            <div className="text-white">{enrichment.asn}</div>
+                          <div className="text-white">{result.enrichment.geo_country} {result.enrichment.geo_country_code ? `(${result.enrichment.geo_country_code})` : ''}</div>
+                        </div>
+                      )}
+                      {result.enrichment.geo_city && (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <MapPin className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-400 text-sm">City</span>
                           </div>
-                        )}
-                        {enrichment.org && (
-                          <div>
-                            <div className="flex items-center space-x-2 mb-1">
-                              <Server className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-400 text-sm">Organization</span>
-                            </div>
-                            <div className="text-white">{enrichment.org}</div>
+                          <div className="text-white">{result.enrichment.geo_city}</div>
+                        </div>
+                      )}
+                      {result.enrichment.asn_number && (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Server className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-400 text-sm">ASN</span>
                           </div>
-                        )}
-                      </div>
-                      {enrichment.abuse_contacts && enrichment.abuse_contacts.length > 0 && (
-                        <div className="mt-3 pt-3 border-t border-gray-700">
-                          <span className="text-gray-400 text-sm">Abuse Contacts: </span>
-                          <span className="text-white">{enrichment.abuse_contacts.join(', ')}</span>
+                          <div className="text-white">AS{result.enrichment.asn_number}</div>
+                        </div>
+                      )}
+                      {result.enrichment.asn_name && (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Server className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-400 text-sm">ASN Name</span>
+                          </div>
+                          <div className="text-white">{result.enrichment.asn_name}</div>
+                        </div>
+                      )}
+                      {result.enrichment.isp_name && (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Server className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-400 text-sm">ISP</span>
+                          </div>
+                          <div className="text-white">{result.enrichment.isp_name}</div>
+                        </div>
+                      )}
+                      {result.enrichment.whois_registrar && (
+                        <div>
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Globe className="w-4 h-4 text-gray-400" />
+                            <span className="text-gray-400 text-sm">Registrar</span>
+                          </div>
+                          <div className="text-white">{result.enrichment.whois_registrar}</div>
                         </div>
                       )}
                     </div>
-                  ))}
+                  </div>
                 </div>
               )}
 

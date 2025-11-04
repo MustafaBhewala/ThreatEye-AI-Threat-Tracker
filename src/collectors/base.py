@@ -150,11 +150,24 @@ class BaseFeedCollector(ABC):
             FeedData instance or None
         """
         try:
+            from src.storage.models import FeedSource
+            
+            # Map source name to FeedSource enum
+            feed_source_map = {
+                'VirusTotal': FeedSource.VIRUSTOTAL,
+                'AbuseIPDB': FeedSource.ABUSEIPDB,
+                'OTX': FeedSource.OTX
+            }
+            
             feed_data = FeedData(
                 indicator_id=indicator_id,
-                source=self.source_name,
-                raw_data=raw_data,
-                retrieved_at=datetime.utcnow()
+                feed_source=feed_source_map.get(self.source_name, FeedSource.MANUAL),
+                feed_timestamp=datetime.utcnow(),
+                is_malicious=raw_data.get('is_malicious', False),
+                reputation_score=raw_data.get('reputation_score'),
+                detection_count=raw_data.get('detection_count'),
+                total_engines=raw_data.get('total_engines'),
+                raw_response=raw_data
             )
             
             self.db_session.add(feed_data)
@@ -180,25 +193,39 @@ class BaseFeedCollector(ABC):
         try:
             # Check if enrichment already exists
             existing = self.db_session.query(EnrichmentData).filter(
-                EnrichmentData.indicator_id == indicator_id,
-                EnrichmentData.source == self.source_name
+                EnrichmentData.indicator_id == indicator_id
             ).first()
+            
+            # Map enrichment fields to database columns
+            enrichment_fields = {
+                'geo_country': enrichment.get('geo_country'),
+                'geo_country_code': enrichment.get('geo_country'),  # Use same for now
+                'geo_city': enrichment.get('geo_city'),
+                'geo_latitude': enrichment.get('geo_latitude'),
+                'geo_longitude': enrichment.get('geo_longitude'),
+                'asn_number': enrichment.get('asn'),
+                'asn_organization': enrichment.get('org'),
+                'isp_name': enrichment.get('org'),
+                'dns_records': enrichment.get('dns_records'),
+                'whois_registrar': enrichment.get('whois_data'),
+            }
+            
+            # Remove None values
+            enrichment_fields = {k: v for k, v in enrichment_fields.items() if v is not None}
             
             if existing:
                 # Update existing enrichment
-                for key, value in enrichment.items():
-                    if hasattr(existing, key) and value is not None:
+                for key, value in enrichment_fields.items():
+                    if hasattr(existing, key):
                         setattr(existing, key, value)
-                existing.retrieved_at = datetime.utcnow()
+                existing.updated_at = datetime.utcnow()
                 self.db_session.commit()
                 return existing
             else:
                 # Create new enrichment
                 enrichment_data = EnrichmentData(
                     indicator_id=indicator_id,
-                    source=self.source_name,
-                    retrieved_at=datetime.utcnow(),
-                    **enrichment
+                    **enrichment_fields
                 )
                 
                 self.db_session.add(enrichment_data)
